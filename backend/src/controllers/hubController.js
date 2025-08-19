@@ -5,15 +5,31 @@ import Hub from "../models/Hub.js";
 export const createHub = async (req, res, next) => {
   try {
     const { hubId, name } = req.body;
-    if (!hubId || !name) return res.status(400).json({ error: "hubId and name are required" });
+    if (!hubId || !name) {
+      return res.status(400).json({ error: "hubId and name required" });
+    }
 
-    const exists = await Hub.findOne({ hubId });
-    if (exists) return res.status(409).json({ error: "hubId already exists" });
+    // Check both hubId and name
+    const exists = await Hub.findOne({
+      $or: [{ hubId }, { name }]
+    });
+
+    if (exists) {
+      if (exists.hubId === hubId) {
+        return res.status(409).json({ error: "Hub ID already exists" });
+      }
+      if (exists.name === name) {
+        return res.status(409).json({ error: "Hub Name already exists" });
+      }
+    }
 
     const hub = await Hub.create({ hubId, name });
     res.status(201).json(hub);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
+
 
 /** List all hubs (also returns simple stats for your UI header) */
 export const listHubs = async (_req, res, next) => {
@@ -36,34 +52,44 @@ export const getHub = async (req, res, next) => {
 
 /** Connect two hubs bi-directionally */
 export const connectHubs = async (req, res, next) => {
-  const { a, b } = req.body; // hubIds
-  if (!a || !b) return res.status(400).json({ error: "Provide hubIds a and b" });
-  if (a === b) return res.status(400).json({ error: "Cannot connect a hub to itself" });
-
-  const session = await mongoose.startSession();
-  session.startTransaction();
   try {
-    const [ha, hb] = await Promise.all([
-      Hub.findOne({ hubId: a }).session(session),
-      Hub.findOne({ hubId: b }).session(session)
-    ]);
-    if (!ha || !hb) throw new Error("Both hubs must exist");
+    const { sourceHubId, targetHubId } = req.body;
 
-    if (!ha.connections.includes(b)) ha.connections.push(b);
-    if (!hb.connections.includes(a)) hb.connections.push(a);
+    if (!sourceHubId || !targetHubId) {
+      return res.status(400).json({ error: "Both hub IDs required" });
+    }
+    if (sourceHubId === targetHubId) {
+      return res.status(400).json({ error: "Cannot connect a hub to itself" });
+    }
 
-    await ha.save({ session });
-    await hb.save({ session });
+    const hubA = await Hub.findOne({ hubId: sourceHubId });
+    const hubB = await Hub.findOne({ hubId: targetHubId });
 
-    await session.commitTransaction();
-    res.json({ message: "Connected", a: ha, b: hb });
+    if (!hubA || !hubB) {
+      return res.status(404).json({ error: "One or both hubs not found" });
+    }
+
+    // Check if already connected
+    if (hubA.connections.includes(targetHubId)) {
+      return res.status(400).json({ error: "These hubs are already connected" });
+    }
+
+    hubA.connections.push(targetHubId);
+    hubB.connections.push(sourceHubId);
+
+    await hubA.save();
+    await hubB.save();
+
+    res.json({
+      message: "Connected hubs successfully",
+      hubA,
+      hubB,
+    });
   } catch (e) {
-    await session.abortTransaction();
     next(e);
-  } finally {
-    session.endSession();
   }
 };
+
 
 /** Disconnect two hubs bi-directionally */
 export const disconnectHubs = async (req, res, next) => {
