@@ -9,9 +9,9 @@ export const shortestPath = async (req, res, next) => {
       return res.status(400).json({ error: "source and destination are required" });
     }
 
-    const hubs = await Hub.find({}, { hubId: 1, connections: 1 });
+    const hubs = await Hub.find({}, { id: 1, connectedHubs: 1 });
     const graph = new Map();
-    hubs.forEach(h => graph.set(h.hubId, h.connections));
+    hubs.forEach(h => graph.set(h.id, h.connectedHubs));
 
     if (!graph.has(source) || !graph.has(destination)) {
       return res.status(404).json({ error: "source or destination not found" });

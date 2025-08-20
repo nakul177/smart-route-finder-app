@@ -2,14 +2,14 @@ import mongoose from "mongoose";
 
 const HubSchema = new mongoose.Schema(
     {
-        hubId: { type: String, required: true, unique: true, index: true, trim: true },
+        id: { type: String, required: true, unique: true, index: true, trim: true },
         name: {
             type: String, required: true,
             unique: true,       // name must also be unique
             trim: true
         },
         // store neighbor hubIds (undirected graph)
-        connections: {
+        connectedHubs: {
             type: [String],
             default: [],
             validate: {

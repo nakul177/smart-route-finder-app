@@ -4,18 +4,18 @@ import Hub from "../models/Hub.js";
 /** Create a hub */
 export const createHub = async (req, res, next) => {
   try {
-    const { hubId, name } = req.body;
-    if (!hubId || !name) {
+    const { id, name } = req.body;
+    if (!id || !name) {
       return res.status(400).json({ error: "hubId and name required" });
     }
 
     // Check both hubId and name
     const exists = await Hub.findOne({
-      $or: [{ hubId }, { name }]
+      $or: [{ id }, { name }]
     });
 
     if (exists) {
-      if (exists.hubId === hubId) {
+      if (exists.id === id) {
         return res.status(409).json({ error: "Hub ID already exists" });
       }
       if (exists.name === name) {
@@ -23,7 +23,7 @@ export const createHub = async (req, res, next) => {
       }
     }
 
-    const hub = await Hub.create({ hubId, name });
+    const hub = await Hub.create({ id , name });
     res.status(201).json(hub);
   } catch (e) {
     next(e);
@@ -31,22 +31,23 @@ export const createHub = async (req, res, next) => {
 };
 
 
-/** List all hubs (also returns simple stats for your UI header) */
+/** List all hubs  */
 export const listHubs = async (_req, res, next) => {
   try {
-    const hubs = await Hub.find().sort({ hubId: 1 });
-    const connectionsCount = hubs.reduce((sum, h) => sum + h.connections.length, 0);
+    const hubs = await Hub.find().sort({ id : 1 });
+    const connectionsCount = hubs.reduce((sum, h) => sum + (h.connections?.length || 0), 0);
     const avgPerHub = hubs.length ? +(connectionsCount / hubs.length).toFixed(2) : 0;
     res.json({ hubs, stats: { hubs: hubs.length, connections: connectionsCount, avgPerHub } });
   } catch (e) { next(e); }
 };
 
+
 /** Get a single hub by hubId */
 export const getHub = async (req, res, next) => {
   try {
-    const hub = await Hub.findOne({ hubId: req.params.hubId });
+    const hub = await Hub.findOne({ id: req.params.id });
     if (!hub) return res.status(404).json({ error: "Hub not found" });
-    res.json(hub);
+    res.json(hub);x
   } catch (e) { next(e); }
 };
 
@@ -62,20 +63,20 @@ export const connectHubs = async (req, res, next) => {
       return res.status(400).json({ error: "Cannot connect a hub to itself" });
     }
 
-    const hubA = await Hub.findOne({ hubId: sourceHubId });
-    const hubB = await Hub.findOne({ hubId: targetHubId });
+    const hubA = await Hub.findOne({ id: sourceHubId });
+    const hubB = await Hub.findOne({ id: targetHubId });
 
     if (!hubA || !hubB) {
       return res.status(404).json({ error: "One or both hubs not found" });
     }
 
     // Check if already connected
-    if (hubA.connections.includes(targetHubId)) {
+    if (hubA.connectedHubs.includes(targetHubId)) {
       return res.status(400).json({ error: "These hubs are already connected" });
     }
 
-    hubA.connections.push(targetHubId);
-    hubB.connections.push(sourceHubId);
+    hubA.connectedHubs.push(targetHubId);
+    hubB.connectedHubs.push(sourceHubId);
 
     await hubA.save();
     await hubB.save();
@@ -100,13 +101,13 @@ export const disconnectHubs = async (req, res, next) => {
   session.startTransaction();
   try {
     const [ha, hb] = await Promise.all([
-      Hub.findOne({ hubId: a }).session(session),
-      Hub.findOne({ hubId: b }).session(session)
+      Hub.findOne({ id: a }).session(session),
+      Hub.findOne({ id: b }).session(session)
     ]);
     if (!ha || !hb) throw new Error("Both hubs must exist");
 
-    ha.connections = ha.connections.filter((x) => x !== b);
-    hb.connections = hb.connections.filter((x) => x !== a);
+    ha.connectedHubs = ha.connectedHubs.filter((x) => x !== b);
+    hb.connectedHubs = hb.connectedHubs.filter((x) => x !== a);
 
     await ha.save({ session });
     await hb.save({ session });
@@ -121,13 +122,3 @@ export const disconnectHubs = async (req, res, next) => {
   }
 };
 
-/** Graph for visualizer (nodes + edges) */
-export const getGraph = async (_req, res, next) => {
-  try {
-    const hubs = await Hub.find({}, { _id: 0, hubId: 1, name: 1, connections: 1 });
-    res.json({
-      nodes: hubs.map(h => ({ id: h.hubId, label: h.name })),
-      edges: hubs.flatMap(h => h.connections.map(c => ({ source: h.hubId, target: c })))
-    });
-  } catch (e) { next(e); }
-};

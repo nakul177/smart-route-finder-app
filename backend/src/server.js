@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-import "dotenv/config";           // loads .env
+import "dotenv/config";
 import { connectDB } from "./db.js";
 
 import hubRoutes from "./routes/hubRoutes.js";
