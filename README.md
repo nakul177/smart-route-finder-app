@@ -118,7 +118,3 @@ npm run install-all
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `MONGO_URI` | MongoDB connection string | ✅ Yes |
-
----
-
-**Note**: Make sure to replace `<your-repository-url>` with your actual repository URL and update the MongoDB URI with your actual connection string.

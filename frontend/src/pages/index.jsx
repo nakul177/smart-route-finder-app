@@ -11,12 +11,45 @@ import { hubService } from '../services/hubService';
 
 const Index = () => {
     const [hubs, setHubs] = useState([]);
-    const [stats, setstats] = useState([]);
+    const [stats, setStats] = useState({
+        hubs: 0,
+        connections: 0,
+        avgPerHub: 0
+    });
     const [highlightedPath, setHighlightedPath] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-
     const { toast } = useToast();
+
+    // Function to calculate stats from hubs
+    const calculateStats = useCallback((hubsData) => {
+        if (!hubsData || hubsData.length === 0) {
+            return {
+                hubs: 0,
+                connections: 0,
+                avgPerHub: 0
+            };
+        }
+
+        const totalHubs = hubsData.length;
+        const totalConnections = hubsData.reduce((total, hub) => {
+            return total + (hub.connectedHubs?.length || 0);
+        }, 0) ; 
+
+        const avgPerHub = totalHubs > 0 ? (totalConnections * 2 / totalHubs).toFixed(1) : 0;
+
+        return {
+            hubs: totalHubs,
+            connections: totalConnections,
+            avgPerHub: parseFloat(avgPerHub)
+        };
+    }, []);
+
+    // Update stats whenever hubs change
+    useEffect(() => {
+        const newStats = calculateStats(hubs);
+        setStats(newStats);
+    }, [hubs, calculateStats]);
 
     // Load hubs on component mount
     useEffect(() => {
@@ -29,7 +62,14 @@ const Index = () => {
         try {
             const Data = await hubService.getAllHubs();
             setHubs(Data.hubs);
-            setstats(Data.stats);
+            
+            // If the API provides stats, use them, otherwise calculate them
+            if (Data.stats) {
+                setStats(Data.stats);
+            } else {
+                const calculatedStats = calculateStats(Data.hubs);
+                setStats(calculatedStats);
+            }
         } catch (error) {
             console.error('Failed to load hubs:', error);
             setError(error.message);
@@ -43,15 +83,15 @@ const Index = () => {
         }
     };
 
-    // Handle hubs update from child components
+
     const handleHubsUpdate = useCallback((newHubs) => {
         setHubs(newHubs);
+    
     }, []);
 
     const handlePathFound = useCallback((path) => {
         setHighlightedPath(path);
     }, []);
-
 
     if (isLoading) {
         return (
@@ -100,15 +140,15 @@ const Index = () => {
 
                         <div className="flex gap-4">
                             <div className="text-center">
-                                <div className="text-lg font-bold text-hub-primary">{stats?.hubs}</div>
+                                <div className="text-lg font-bold text-hub-primary">{stats.hubs}</div>
                                 <div className="text-xs text-muted-foreground">Hubs</div>
                             </div>
                             <div className="text-center">
-                                <div className="text-lg font-bold text-hub-secondary">{stats?.connections}</div>
+                                <div className="text-lg font-bold text-hub-secondary">{stats.connections}</div>
                                 <div className="text-xs text-muted-foreground">Connections</div>
                             </div>
                             <div className="text-center">
-                                <div className="text-lg font-bold text-hub-accent">{stats?.avgPerHub}</div>
+                                <div className="text-lg font-bold text-hub-accent">{stats.avgPerHub}</div>
                                 <div className="text-xs text-muted-foreground">Avg/Hub</div>
                             </div>
                         </div>
@@ -228,7 +268,7 @@ const Index = () => {
                                             <Network className="h-6 w-6 text-hub-primary" />
                                         </div>
                                         <div className="ml-4">
-                                            <p className="text-2xl font-bold text-hub-primary">{stats?.hubs}</p>
+                                            <p className="text-2xl font-bold text-hub-primary">{stats.hubs}</p>
                                             <p className="text-xs text-muted-foreground">Total Hubs</p>
                                         </div>
                                     </div>
@@ -242,7 +282,7 @@ const Index = () => {
                                             <Route className="h-6 w-6 text-hub-secondary" />
                                         </div>
                                         <div className="ml-4">
-                                            <p className="text-2xl font-bold text-hub-secondary">{stats?.connections}</p>
+                                            <p className="text-2xl font-bold text-hub-secondary">{stats.connections}</p>
                                             <p className="text-xs text-muted-foreground">Total Connections</p>
                                         </div>
                                     </div>
@@ -256,7 +296,7 @@ const Index = () => {
                                             <BarChart3 className="h-6 w-6 text-hub-accent" />
                                         </div>
                                         <div className="ml-4">
-                                            <p className="text-2xl font-bold text-hub-accent">{stats?.avgPerHub}</p>
+                                            <p className="text-2xl font-bold text-hub-accent">{stats.avgPerHub}</p>
                                             <p className="text-xs text-muted-foreground">Avg Connections</p>
                                         </div>
                                     </div>

@@ -1,9 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 
-export const Select = ({ value, onValueChange, children }) => {
+export const Select = ({ value, onValueChange, children, disabled }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [selectedText, setSelectedText] = useState('');
     const selectRef = useRef(null);
 
     useEffect(() => {
@@ -18,9 +17,35 @@ export const Select = ({ value, onValueChange, children }) => {
     }, []);
 
     const handleValueChange = (newValue, displayText) => {
-        setSelectedText(displayText);
         onValueChange?.(newValue);
         setIsOpen(false);
+    };
+
+    // Find the display text for the current value
+    const getDisplayText = () => {
+        let displayText = '';
+        
+        const findTextInChildren = (children) => {
+            React.Children.forEach(children, (child) => {
+                if (React.isValidElement(child)) {
+                    if (child.type === SelectContent) {
+                        React.Children.forEach(child.props.children, (item) => {
+                            if (React.isValidElement(item) && item.props.value === value) {
+                                displayText = typeof item.props.children === 'string' 
+                                    ? item.props.children 
+                                    : item.props.children;
+                            }
+                        });
+                    }
+                }
+            });
+        };
+
+        if (value) {
+            findTextInChildren(children);
+        }
+        
+        return displayText;
     };
 
     return (
@@ -32,7 +57,8 @@ export const Select = ({ value, onValueChange, children }) => {
                         setIsOpen,
                         value,
                         onValueChange: handleValueChange,
-                        selectedText,
+                        displayText: getDisplayText(),
+                        disabled,
                     })
                     : child
             )}
@@ -40,16 +66,17 @@ export const Select = ({ value, onValueChange, children }) => {
     );
 };
 
-export const SelectTrigger = ({ children, className = '', isOpen, setIsOpen, selectedText }) => {
+export const SelectTrigger = ({ children, className = '', isOpen, setIsOpen, displayText, disabled }) => {
     return (
         <button
             type="button"
             className={`flex h-10 w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
-            onClick={() => setIsOpen?.(!isOpen)}
+            onClick={() => !disabled && setIsOpen?.(!isOpen)}
+            disabled={disabled}
         >
             {React.Children.map(children, (child) =>
                 React.isValidElement(child)
-                    ? React.cloneElement(child, { selectedText })
+                    ? React.cloneElement(child, { displayText })
                     : child
             )}
             <ChevronDown
@@ -59,17 +86,17 @@ export const SelectTrigger = ({ children, className = '', isOpen, setIsOpen, sel
     );
 };
 
-export const SelectValue = ({ placeholder = 'Select...', className = '', selectedText }) => {
+export const SelectValue = ({ placeholder = 'Select...', className = '', displayText }) => {
     return (
         <span
-            className={`block truncate ${!selectedText ? 'text-gray-400' : 'text-gray-900'} ${className}`}
+            className={`block truncate ${!displayText ? 'text-gray-400' : 'text-gray-900'} ${className}`}
         >
-            {selectedText || placeholder}
+            {displayText || placeholder}
         </span>
     );
 };
 
-export const SelectContent = ({ children, className = '', isOpen, value, onValueChange, setIsOpen }) => {
+export const SelectContent = ({ children, className = '', isOpen, value, onValueChange }) => {
     if (!isOpen) return null;
 
     return (
@@ -81,7 +108,6 @@ export const SelectContent = ({ children, className = '', isOpen, value, onValue
                     React.isValidElement(child)
                         ? React.cloneElement(child, {
                             onValueChange,
-                            setIsOpen,
                             isSelected: child.props.value === value,
                         })
                         : child
@@ -91,9 +117,8 @@ export const SelectContent = ({ children, className = '', isOpen, value, onValue
     );
 };
 
-export const SelectItem = ({ value, children, className = '', onValueChange, setIsOpen, isSelected }) => {
+export const SelectItem = ({ value, children, className = '', onValueChange, isSelected }) => {
     const handleClick = () => {
-        // Pass both the value and the display text
         onValueChange?.(value, children);
     };
 

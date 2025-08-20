@@ -7,7 +7,8 @@ export const hubService = {
             const response = await api.get('/hubs');
             return response.data;
         } catch (error) {
-            throw new Error(`Failed to fetch hubs: ${error.response?.data?.message || error.message}`);
+        
+            throw new Error(`Failed to fetch hubs: ${error.response.data.error}`);
         }
     },
 
@@ -17,7 +18,8 @@ export const hubService = {
             const response = await api.post('/hubs', hubData);
             return response.data;
         } catch (error) {
-            throw new Error(`Failed to create hub: ${error.response?.data?.message || error.message}`);
+            console.log(error)
+            throw new Error(`Failed to create hub: ${error.response.data.error}`);
         }
     },
 
@@ -31,7 +33,7 @@ export const hubService = {
             });
             return response.data;
         } catch (error) {
-            throw new Error(`Failed to connect hubs: ${error.response?.data?.message || error.message}`);
+            throw new Error(`Failed to connect hubs: ${error.response.data.error}`);
         }
     },
 
@@ -44,7 +46,7 @@ export const hubService = {
             });
             return response.data;
         } catch (error) {
-            throw new Error(`Failed to disconnect hubs: ${error.response?.data?.message || error.message}`);
+            throw new Error(`Failed to disconnect hubs: ${error.response.data.error}`);
         }
     },
 

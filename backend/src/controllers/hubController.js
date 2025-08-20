@@ -35,7 +35,7 @@ export const createHub = async (req, res, next) => {
 export const listHubs = async (_req, res, next) => {
   try {
     const hubs = await Hub.find().sort({ id : 1 });
-    const connectionsCount = hubs.reduce((sum, h) => sum + (h.connections?.length || 0), 0);
+    const connectionsCount = hubs.reduce((sum, h) => sum + (h.connectedHubs?.length || 0), 0);
     const avgPerHub = hubs.length ? +(connectionsCount / hubs.length).toFixed(2) : 0;
     res.json({ hubs, stats: { hubs: hubs.length, connections: connectionsCount, avgPerHub } });
   } catch (e) { next(e); }

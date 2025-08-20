@@ -14,7 +14,7 @@ export const pathService = {
             if (error.response?.status === 404) {
                 throw new Error(error.response.data.error || 'Path not found');
             }
-            throw new Error(`Failed to find path: ${error.response?.data?.error || error.message}`);
+            throw new Error(`Failed to find path: ${error.response.data.error}`);
         }
     },
 

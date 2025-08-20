@@ -126,6 +126,7 @@ const HubManagement = ({
             await hubService.connectHubs(connectionHub1, connectionHub2);
             await loadHubs();
 
+            // Clear the selections after successful connection
             setConnectionHub1('');
             setConnectionHub2('');
 
@@ -336,17 +337,15 @@ const HubManagement = ({
                                                 {hub.connectedHubs.map(connectedId => {
                                                     const connectedHub = hubs.find(h => h.id === connectedId);
                                                     return (
-                                                        <sapn  onClick={() => handleDisconnectHubs(hub.id, connectedId)}>
-                                                        <Badge
-                                                            key={connectedId}
-                                                            variant="secondary"
-                                                            className="text-xs cursor-pointer hover:bg-red-100 hover:text-red-800"
-
-                                                            title="Click to disconnect"
-                                                        >
-                                                            {connectedHub?.name || connectedId} ×
-                                                        </Badge>
-                                                        </sapn>
+                                                        <span key={connectedId} onClick={() => handleDisconnectHubs(hub.id, connectedId)}>
+                                                            <Badge
+                                                                variant="secondary"
+                                                                className="text-xs cursor-pointer hover:bg-red-100 hover:text-red-800"
+                                                                title="Click to disconnect"
+                                                            >
+                                                                {connectedHub?.name || connectedId} ×
+                                                            </Badge>
+                                                        </span>
                                                     );
                                                 })}
                                             </div>
